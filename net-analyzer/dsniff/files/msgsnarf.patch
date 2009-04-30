@@ -1,0 +1,155 @@
+diff -u dsniff-2.4.bak/buf.c dsniff-2.4/buf.c
+--- dsniff-2.4.bak/buf.c	2001-03-15 16:32:59.000000000 +0800
++++ dsniff-2.4/buf.c	2007-06-12 17:10:40.000000000 +0800
+@@ -249,6 +249,26 @@
+ 	return (p);
+ }
+ 
++char *
++buf_strdup2(buf_t buf1, buf_t buf2)
++{
++	char *p;
++	int i;
++
++	i = buf_len(buf1) + buf_len(buf2);
++	
++	if ((p = malloc(i + 3)) == NULL)
++		err(1, "malloc");
++
++	memcpy(p, buf_ptr(buf1), buf_len(buf1));
++	p[buf_len(buf1)]='(';
++	memcpy(p+buf_len(buf1)+1, buf_ptr(buf2), buf_len(buf2));
++	p[buf_len(buf1) + buf_len(buf2) + 1]=')';
++	p[buf_len(buf1) + buf_len(buf2) + 2]='\0';
++	
++	return (p);
++}
++
+ int
+ buf_isascii(buf_t buf)
+ {
+diff -u dsniff-2.4.bak/buf.h dsniff-2.4/buf.h
+--- dsniff-2.4.bak/buf.h	2001-03-15 16:33:05.000000000 +0800
++++ dsniff-2.4/buf.h	2007-06-12 17:10:34.000000000 +0800
+@@ -75,6 +75,7 @@
+ 
+ /* Convert buffer to allocated string. */
+ char *	buf_strdup(buf_t buf);
++char *	buf_strdup2(buf_t buf1, buf_t buf2);
+ 
+ /* ASCII string test. */
+ int	buf_isascii(buf_t buf);
+diff -u dsniff-2.4.bak/msgsnarf.c dsniff-2.4/msgsnarf.c
+--- dsniff-2.4.bak/msgsnarf.c	2007-06-11 14:30:51.000000000 +0800
++++ dsniff-2.4/msgsnarf.c	2007-06-13 09:55:05.000000000 +0800
+@@ -34,6 +34,7 @@
+ 	char	       *peer;
+ 	char	       *type;
+ 	in_addr_t	ip;
++	in_addr_t	dip;
+ 	SLIST_ENTRY(client_info) next;
+ };
+ 
+@@ -342,7 +343,7 @@
+ static int
+ process_msn(struct client_info *info, u_char *data, int len)
+ {
+-	struct buf *word, *line, buf;
++	struct buf *word, *nick, *line, buf;
+ 	char *p;
+ 	int i, reply;
+ 
+@@ -353,15 +354,11 @@
+ 		buf_skip(&buf, 2);
+ 		
+ 		if (buf_cmp(line, "USR ", 4) == 0) {
+-			if ((i = buf_index(line, "MD5 ", 4)) > 0) {
+-				buf_skip(line, i + 4);
+-				
+-				if (buf_cmp(line, "I ", 2) == 0) {
+-					buf_skip(line, 2);
+-					if (info->nick != NULL)
+-						free(info->nick);
+-					info->nick = buf_strdup(line);
+-				}
++			if ((i = buf_index(line, "OK ", 3)) > 0) {
++				buf_skip(line, i + 3);
++				if (info->nick != NULL)
++					free(info->nick);
++				info->nick = buf_strdup(line);
+ 			}
+ 		}
+ 		else if (buf_cmp(line, "IRO ", 4) == 0) {
+@@ -369,9 +366,11 @@
+ 				continue;
+ 			buf_skip(line, i + 2);
+ 			word = buf_getword(line, " ", 1);
++			nick = buf_getword(line, " ", 1);
+ 			if (info->peer != NULL) free(info->peer);
+-			info->peer = buf_strdup(word);
++			info->peer = buf_strdup2(word, nick);
+ 			buf_free(word);
++			buf_free(nick);
+ 		}
+ 		else if (buf_cmp(line, "MSG ", 4) == 0) {
+ 			buf_skip(line, 4);
+@@ -380,18 +379,24 @@
+ 			if ((word = buf_getword(line, " ", 1)) == NULL)
+ 				continue;
+ 
+-			if (buf_cmp(line, "N ", 2) == 0 ||
+-			    buf_cmp(line, "U ", 2) == 0) {
++			nick = buf_getword(line, " ", 1);
++
++			if (buf_ptr(nick)[0] == 'U' || buf_ptr(nick)[0] == 'N'){
+ 				reply = 1;
++			}else if(buf_ptr(nick)[0] == 'D' || buf_ptr(nick)[0] == 'A'){
+ 			}
+ 			else {
+ 				if (info->peer != NULL) free(info->peer);
+-				info->peer = buf_strdup(word);
++				if(nick == NULL)
++					info->peer = buf_strdup(word);
++				else
++					info->peer = buf_strdup2(word, nick);
+ 			}
+ 			buf_free(word);
++			if(nick != NULL) buf_free(nick);
+ 			
+-			if ((i = buf_rindex(line, " ", 1)) < 0)
+-				continue;
++			//if ((i = buf_rindex(line, " ", 1)) < 0)
++			//	continue;
+ 			
+ 			buf_skip(line, i + 1);
+ 			p = buf_strdup(line);
+@@ -410,13 +415,14 @@
+ 
+ 				if (regex_match(p)) {
+ 					if (reply) {
+-						printf("%s MSN %s > %s: %s\n",
++						printf("%s MSN %s > %s (%s > %s): %s\n",
+ 						       timestamp(), info->nick,
+-						       info->peer, p);
++						       info->peer, libnet_addr2name4(info->ip, 1),libnet_addr2name4(info->dip, 1), p);
++					}else{
++						printf("%s MSN %s < %s (%s < %s): %s\n",
++						    timestamp(), info->nick,
++						    info->peer, libnet_addr2name4(info->ip, 1),libnet_addr2name4(info->dip, 1), p);
+ 					}
+-					else printf("%s MSN %s > %s: %s\n",
+-						    timestamp(), info->peer,
+-						    info->nick, p);
+ 				}
+ 				free(p);
+ 			}
+@@ -585,7 +591,9 @@
+ 			if ((c = malloc(sizeof(*c))) == NULL)
+ 				nids_params.no_mem("sniff_msgs");
+ 			c->ip = ts->addr.saddr;
++			c->dip = ts->addr.daddr;
+ 			c->nick = strdup("unknown");
++			c->peer = strdup("unknown");
+ 			SLIST_INSERT_HEAD(&client_list, c, next);
+ 		}
+ 		*conn_save = (void *)c;

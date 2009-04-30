@@ -1,0 +1,12 @@
+diff -ur pidgin-2.4.0.old/configure pidgin-2.4.0/configure
+--- pidgin-2.4.0.old/configure	2008-02-29 20:11:06.000000000 +0800
++++ pidgin-2.4.0/configure	2008-03-02 19:59:34.000000000 +0800
+@@ -30712,7 +30712,7 @@
+ 
+ # uncomment the next line to make MSNP14 the available
+ # AC_ARG_ENABLE(msnp14,[AC_HELP_STRING([--enable-msnp14], [Disable the newer MSNP14 protocol])],,enable_msnp14=no)
+-enable_msnp14=no
++enable_msnp14=yes
+ 
+ # Check whether --enable-distrib was given.
+ if test "${enable_distrib+set}" = set; then
