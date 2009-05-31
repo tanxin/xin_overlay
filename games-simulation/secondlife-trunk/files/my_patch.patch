@@ -1,0 +1,38 @@
+diff -ruN linden.bak/indra/newview/llviewerwindow.cpp linden/indra/newview/llviewerwindow.cpp
+--- linden.bak/indra/newview/llviewerwindow.cpp	2009-05-20 17:15:51.000000000 -0700
++++ linden/indra/newview/llviewerwindow.cpp	2009-05-20 17:17:40.000000000 -0700
+@@ -1228,7 +1228,7 @@
+ 	// Default to application directory.
+ 	LLViewerWindow::sSnapshotBaseName = "Snapshot";
+ 	LLViewerWindow::sMovieBaseName = "SLmovie";
+-	resetSnapshotLoc();
++	initSnapshotLoc();
+ 
+ 	// create window
+ 	mWindow = LLWindowManager::createWindow(
+@@ -3740,6 +3740,14 @@
+ 	sSnapshotDir.clear();
+ }
+ 
++void LLViewerWindow::initSnapshotLoc()
++{
++       sSnapshotDir = gDirUtilp->getOSUserAppDir();
++       sSnapshotDir += gDirUtilp->getDirDelimiter();
++       sSnapshotDir += "screenshot";
++       llinfos << "Default screenshot directory set to: " << sSnapshotDir << llendl;
++}
++
+ static S32 BORDERHEIGHT = 0;
+ static S32 BORDERWIDTH = 0;
+ 
+diff -ruN linden.bak/indra/newview/llviewerwindow.h linden/indra/newview/llviewerwindow.h
+--- linden.bak/indra/newview/llviewerwindow.h	2009-05-20 17:15:51.000000000 -0700
++++ linden/indra/newview/llviewerwindow.h	2009-05-20 18:01:03.000000000 -0700
+@@ -300,6 +300,7 @@
+ 	// Reset the directory where snapshots are saved.
+ 	// Client will open directory picker on next snapshot save.
+ 	void resetSnapshotLoc();
++	void initSnapshotLoc();
+ 
+ 	void			playSnapshotAnimAndSound();
+ 	

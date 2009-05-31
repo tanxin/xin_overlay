@@ -1,0 +1,58 @@
+diff -uNr linden.bak/indra/llwindow/llwindowsdl.cpp linden/indra/llwindow/llwindowsdl.cpp
+--- linden.bak/indra/llwindow/llwindowsdl.cpp	2009-03-30 16:04:50.000000000 -0700
++++ linden/indra/llwindow/llwindowsdl.cpp	2009-05-27 16:34:59.312310473 -0700
+@@ -2090,7 +2090,7 @@
+ 				    mCallbacks->handleRightMouseDown(this, openGlCoord, mask);
+                 }
+ 
+-                else if (event.button.button == SDL_BUTTON_MIDDLE)  // middle
++                else if (event.button.button == 8)  // middle
+ 				{
+ 				    mCallbacks->handleMiddleMouseDown(this, openGlCoord, mask);
+ 				}
+@@ -2113,7 +2113,7 @@
+ 				    mCallbacks->handleMouseUp(this, openGlCoord, mask);
+                 else if (event.button.button == SDL_BUTTON_RIGHT)  // right ... yes, it's 3, not 2, in SDL...
+ 				    mCallbacks->handleRightMouseUp(this, openGlCoord, mask);
+-                else if (event.button.button == SDL_BUTTON_MIDDLE)  // middle
++                else if (event.button.button == 8)  // middle
+ 		{
+ 			mCallbacks->handleMiddleMouseUp(this, openGlCoord, mask);
+ 		}
+diff -uNr linden.bak/indra/newview/llviewerwindow.cpp linden/indra/newview/llviewerwindow.cpp
+--- linden.bak/indra/newview/llviewerwindow.cpp	2009-03-30 16:04:51.000000000 -0700
++++ linden/indra/newview/llviewerwindow.cpp	2009-05-27 15:41:49.069311511 -0700
+@@ -1389,6 +1389,13 @@
+ 	LLAppViewer::instance()->pauseMainloopTimeout();
+ }
+ 
++void LLViewerWindow::initSnapshotLoc()
++{
++	sSnapshotDir = gDirUtilp->getOSUserAppDir();
++	sSnapshotDir += gDirUtilp->getDirDelimiter();
++	sSnapshotDir += "screenshot";
++	llinfos << "Default screenshot directory is: " << sSnapshotDir << llendl;
++}
+ 
+ //
+ // Classes
+@@ -1424,7 +1431,7 @@
+ 	// Default to application directory.
+ 	LLViewerWindow::sSnapshotBaseName = "Snapshot";
+ 	LLViewerWindow::sMovieBaseName = "SLmovie";
+-	resetSnapshotLoc();
++	initSnapshotLoc();
+ 
+ 	// create window
+ 	mWindow = LLWindowManager::createWindow(
+diff -uNr linden.bak/indra/newview/llviewerwindow.h linden/indra/newview/llviewerwindow.h
+--- linden.bak/indra/newview/llviewerwindow.h	2009-03-30 16:04:51.000000000 -0700
++++ linden/indra/newview/llviewerwindow.h	2009-05-27 15:44:56.640312020 -0700
+@@ -296,6 +296,7 @@
+ 	// Reset the directory where snapshots are saved.
+ 	// Client will open directory picker on next snapshot save.
+ 	void resetSnapshotLoc();
++	void initSnapshotLoc();
+ 
+ 	void			playSnapshotAnimAndSound();
+ 	
